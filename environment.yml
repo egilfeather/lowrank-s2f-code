@@ -1,0 +1,43 @@
+name: sei_env
+channels:
+  - conda-forge
+  - pytorch
+  - bioconda
+dependencies:
+  - python=3.12
+  - pytorch
+  - torchvision
+  - pytorch-lightning
+  - tensorboard
+  - numpy
+  - scipy
+  - pandas
+  - scikit-learn
+  - h5py
+  - matplotlib-base
+  - seaborn
+  - plotly
+  - biopython
+  - pybedtools
+  - selene-sdk
+  - scanpy
+  - einops
+  - transformers
+  - ipykernel
+  - ipywidgets
+  - notebook
+  - pyyaml
+  - requests
+  - click
+  - intervaltree
+  - cmake
+  - compilers
+  - ninja
+  - tqdm
+
+  - pip
+  - pip:
+    - grelu
+    - enformer-pytorch
+    - seilora @ git+https://github.com/kostkalab/seilora.git@f47f2181e9fbf18a4df404eba0ce952b5de0c6a1
+    - seimodel @ git+https://github.com/kostkalab/seimodel.git@1deb909af3a95e7af7840549d47c1aa418aea3d6

@@ -1,0 +1,12 @@
+model	rank	quant	n_params	n_linear_params
+borzoi	1	False	60092507	209152
+borzoi	2	False	60252507	369152
+borzoi	4	False	60572507	689152
+borzoi	8	False	61212507	1329152
+borzoi	16	False	62492507	2609152
+borzoi	32	False	65044315	5160960
+borzoi	64	False	70025051	10141696
+borzoi	128	False	79986523	20103168
+borzoi	256	False	99909467	40026112
+borzoi	512	False	135561051	75677696
+borzoi	full	False	185892699	126009344

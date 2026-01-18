@@ -1,0 +1,15 @@
+
+__pycache__/
+
+data/
+
+# Model weights / large files
+examples/borzoi_lora_weights/
+examples/enformer_lora_weights/
+examples/checkpoint_1/
+examples/checkpoint_256/
+examples/full_models/
+examples/scores/
+examples/logs/
+tensorboard/
+wandb/

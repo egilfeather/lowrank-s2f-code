@@ -1,0 +1,13 @@
+model	rank	quant	n_params	n_linear_params
+enformer	1	False	72297729	289344
+enformer	2	False	72519489	511104
+enformer	4	False	72963009	954624
+enformer	8	False	73850049	1841664
+enformer	16	False	75624129	3615744
+enformer	32	False	79172289	7163904
+enformer	64	False	86268609	14260224
+enformer	128	False	100461249	28452864
+enformer	256	False	127945409	55937024
+enformer	512	False	176966337	104957952
+enformer	full	False	246172353	174163968
+enformer	grelu	False	246172353	174163968
