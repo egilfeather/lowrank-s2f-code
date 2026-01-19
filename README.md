@@ -32,22 +32,21 @@ Process data:
 ├── requirements.txt
 ├── sample_usage.ipynb
 ├── data/
-│   ├── ...
+│   └── ...
 ├── examples/
 │   ├── download_data.sh
 │   ├── figure1.py
 │   ├── figure2.py
 │   ├── figure3.py
-│   └── figure4.py
+│   ├── figure4.py
 │   └── ...
 ├── figs/
 │   └── [generated figures saved here]
 ├── resources/
-│   └── helpers.py
+│   └── ...
 └── sei_lora/
     ├── dataloaders
-    ├── model
-    └── module
+    └── score
 ```
 ## Model Creation
 See [seimodel](https://github.com/kostkalab/seimodel) package for Full Sei model blocks.
