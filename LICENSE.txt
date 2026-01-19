@@ -1,6 +1,6 @@
 The MIT License (MIT)
 
-Copyright (c) Elizabeth Gilfeather (egilfeather)
+Copyright (c) 2026 Elizabeth Gilfeather (egilfeather)
 Copyright (c) 2024 Genentech, Inc.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
