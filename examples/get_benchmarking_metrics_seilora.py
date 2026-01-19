@@ -16,7 +16,7 @@ from scipy.stats import pearsonr, spearmanr
 from scipy.special import expit
 from sklearn.metrics import average_precision_score, matthews_corrcoef, f1_score, roc_auc_score
 import seimodel as sm
-import seilora as sl
+import seillra as sl
 # from .get_models import get_sei_trunk_q, get_sei_head_lora
 import torch.nn as nn
 import torch

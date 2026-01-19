@@ -9,7 +9,7 @@ from threading import Thread, Event
 from typing import Optional, Literal
 import torch.nn as nn
 import seimodel as sm
-import seilora as sl
+import seillra as sl
 
 from torch.ao.quantization import get_default_qconfig, QConfigMapping, quantize_fx
 from borzoi_lora_arch_mha import BorzoiModel, EnformerModel

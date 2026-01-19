@@ -8,7 +8,7 @@ import torch.nn as nn
 
 
 from borzoi_lora_arch_mha import BorzoiModel, EnformerModel
-import seilora as sl
+import seillra as sl
 import seimodel as sm
 
 

@@ -16,7 +16,7 @@ from scipy.stats import pearsonr, spearmanr
 from scipy.special import expit
 from sklearn.metrics import average_precision_score, matthews_corrcoef, f1_score, roc_auc_score
 import seimodel as sm
-import seilora as sl
+import seillra as sl
 # from .get_models import get_sei_trunk_q, get_sei_head_lora
 import torch.nn as nn
 import torch
@@ -167,7 +167,7 @@ class TrunkScoreMod(nn.Module):
         super().__init__()
         self.device = device
         self.trunk = sl.get_sei_trunk_q()
-        self.head = sl.get_sei_head_lora(k)
+        self.head = sl.get_sei_head_llra(k)
 
     def forward(self, x):
         """
@@ -200,7 +200,7 @@ class HeadMod(nn.Module):
     def __init__(self, k: int, device: str = "cpu"):
         super().__init__()
         self.device = device
-        self.head = sl.get_sei_head_lora(k)
+        self.head = sl.get_sei_head_llra(k)
         self.proj = sm.get_sei_projection().load_weights()
         self.proj.set_mode("variant")
 
@@ -225,10 +225,10 @@ def initialize_models(rank: int, trained_version: str, quant: bool, full = False
         dev = 'cuda:1' if torch.cuda.is_available() else 'cpu'
     if file_path == None:
         if not full:
-            cp_model_seq = sl.SeiLoraWrapper(k=rank, ft = trained_version, projection = False, mode = "sequence", device = dev)
-            cp_model_var = sl.SeiLoraWrapper(k=rank, ft = trained_version, projection = False, mode = "variant", device = dev)
-            sc_model_seq = sl.SeiLoraWrapper(k=rank, ft = trained_version, projection = True, mode = "sequence", device = dev)
-            sc_model_var = sl.SeiLoraWrapper(k=rank, ft = trained_version, projection = True, mode = "variant", device = dev)
+            cp_model_seq = sl.Sei_LLRA(k=rank, ft = trained_version, projection = False, mode = "sequence", device = dev)
+            cp_model_var = sl.Sei_LLRA(k=rank, ft = trained_version, projection = False, mode = "variant", device = dev)
+            sc_model_seq = sl.Sei_LLRA(k=rank, ft = trained_version, projection = True, mode = "sequence", device = dev)
+            sc_model_var = sl.Sei_LLRA(k=rank, ft = trained_version, projection = True, mode = "variant", device = dev)
 
             if quant != True:
                 cp_model_seq.trunk.load_weights()
@@ -494,7 +494,7 @@ def get_spi1_bqtls(model, rank, trained_version = ""):
 def get_variants(model, vcf, rank, benchmark_name="", trained_version = "", sc = False):
     dataset = VariantDataset(file_path=vcf)
     if trained_version == "probe" or trained_version == "ft_proj":
-        emb_model = sl.SeiLoraWrapper(k=rank, projection = False, mode = "variant", device = "cpu")
+        emb_model = sl.Sei_LLRA(k=rank, projection = False, mode = "variant", device = "cpu")
         emb_model.eval()
         dataloader =  EmbeddingDataLoader(dataset=dataset, model = emb_model, batch_size=32, shuffle=False, num_workers=7, device = "cpu")
     elif trained_version == "ft_head":

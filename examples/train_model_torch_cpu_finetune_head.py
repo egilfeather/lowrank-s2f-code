@@ -11,7 +11,7 @@ import numpy as np
 from sei_lora.utils.loss_functions import FocalLoss, WeightedBCELoss
 
 import seimodel as sm
-import seilora as sl
+import seillra as sl
 from torch.utils.data import DataLoader, Dataset
 
 
@@ -22,7 +22,7 @@ class TrunkScoreMod(nn.Module):
         super().__init__()
         self.device = device
         self.trunk = sl.get_sei_trunk_q()
-        self.head = sl.get_sei_head_lora(k)
+        self.head = sl.get_sei_head_llra(k)
 
     def forward(self, x):
         """
@@ -55,7 +55,7 @@ class HeadMod(nn.Module):
     def __init__(self, k: int, device: str = "cpu"):
         super().__init__()
         self.device = device
-        self.head = sl.get_sei_head_lora(k)
+        self.head = sl.get_sei_head_llra(k)
         self.proj = sm.get_sei_projection().load_weights()
         self.proj.set_mode("variant")
 

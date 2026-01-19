@@ -19,7 +19,7 @@ from tqdm import tqdm
 import csv
 import time
 import seimodel as sm
-import seilora as sl
+import seillra as sl
 sys.path.append(os.path.abspath(os.path.join(os.getcwd(), '..')))
 from sei_lora.dataloaders import VariantDataset, SeqDataLoader, SeqDataset, VariantDataLoader
 import pickle
@@ -158,7 +158,7 @@ def initialize_models(k_l: int, quant: bool, model_name = "borzoi", full = False
     
     if full != True:
         if model_name not in MODEL_PARAMS:
-            model = sl.SeiLoraWrapper(k=k_l, projection = False, mode = "sequence", device = dev)
+            model = sl.Sei_LLRA(k=k_l, projection = False, mode = "sequence", device = dev)
 
         else:
             model = MODEL_PARAMS[model_name]["model_class"](k_l =k_l, device = dev, **MODEL_PARAMS[model_name]["kwargs"])

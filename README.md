@@ -1,6 +1,6 @@
-# Compressing DNA sequence-to-function models with low-rank linear layers
+# When Less Is Enough: Low-Rank Structure in DNA Sequence-to-Function Models
 
-Code repository for reproducing figures in Compressing DNA sequence-to-function models with low-rank linear layers.
+Code repository for reproducing figures in: When Less Is Enough: Low-Rank Structure in DNA Sequence-to-Function Models.
 
 ## Requirements
 
@@ -52,7 +52,7 @@ Process data:
 ## Model Creation
 See [seimodel](https://github.com/kostkalab/seimodel) package for Full Sei model blocks.
 
-See [sei_llra](https://github.com/kostkalab/seilora) package for Low-rank Sei model architecture, weight creation, and quantization.
+See [seillra](https://github.com/kostkalab/seillra) package for Low-rank Sei model architecture, weight creation, and quantization.
 
 Low-rank Borzoi and Enformer Model Architecture: `examples/borzoi_lora_arch_mha.py`
 
@@ -245,3 +245,4 @@ Dennis Kostka - kostka @ pitt.edu
 
 ## License
 
+The MIT License (MIT)

@@ -11,7 +11,7 @@ import numpy as np
 from sei_lora.utils.loss_functions import FocalLoss, WeightedBCELoss
 
 import seimodel as sm
-import seilora as sl
+import seillra as sl
 from torch.utils.data import DataLoader, Dataset
 
 

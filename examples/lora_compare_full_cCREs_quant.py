@@ -19,7 +19,7 @@ from tqdm import tqdm
 import csv
 import time
 import seimodel as sm
-import seilora as sl
+import seillra as sl
 sys.path.append(os.path.abspath(os.path.join(os.getcwd(), '..')))
 from sei_lora.dataloaders import VariantDataset, SeqDataLoader, SeqDataset, VariantDataLoader
 import pickle

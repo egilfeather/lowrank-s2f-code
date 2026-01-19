@@ -39,5 +39,5 @@ dependencies:
   - pip:
     - grelu
     - enformer-pytorch
-    - seilora @ git+https://github.com/kostkalab/seilora.git@f47f2181e9fbf18a4df404eba0ce952b5de0c6a1
+    - seillra @ git+https://github.com/kostkalab/seillra.git@f47f2181e9fbf18a4df404eba0ce952b5de0c6a1
     - seimodel @ git+https://github.com/kostkalab/seimodel.git@1deb909af3a95e7af7840549d47c1aa418aea3d6
