@@ -21,7 +21,7 @@ class TrunkScoreMod(nn.Module):
     def __init__(self, k, device: str = "cpu"):
         super().__init__()
         self.device = device
-        self.trunk = sl.get_sei_trunk_q()
+        self.trunk = sl.get_sei_trunk()
         self.head = sl.get_sei_head_llra(k)
 
     def forward(self, x):

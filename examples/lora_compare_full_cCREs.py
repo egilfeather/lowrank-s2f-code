@@ -155,10 +155,13 @@ def initialize_models(k_l: int, quant: bool, model_name = "borzoi", full = False
         dev = "cpu"
     else:
         dev = 'cuda:1'
-    
+    if dev == "cpu":
+        q = "CPU"
+    else:
+        q = None
     if full != True:
         if model_name not in MODEL_PARAMS:
-            model = sl.Sei_LLRA(k=k_l, projection = False, mode = "sequence", device = dev)
+            model = sl.Sei_LLRA(k=k_l, projection = False, mode = "sequence", quant = q)
 
         else:
             model = MODEL_PARAMS[model_name]["model_class"](k_l =k_l, device = dev, **MODEL_PARAMS[model_name]["kwargs"])

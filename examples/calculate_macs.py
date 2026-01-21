@@ -51,6 +51,10 @@ class SeiWrapper(nn.Module):
 
 
 def initialize_model(model_name: str, dummy_input: torch.Tensor, rank, device):
+    if device == "cpu":
+        quant = "CPU"
+    else:
+        quant = None
 
     if model_name.lower() == "borzoi":
         lora_weights_dir = "./borzoi_lora_weights"
@@ -82,7 +86,7 @@ def initialize_model(model_name: str, dummy_input: torch.Tensor, rank, device):
         if rank == "full":
             model = SeiWrapper(k=rank, projection=False, mode="sequence", device=device)
         else:
-            model = sl.Sei_LLRA(k=rank, projection=False, mode="sequence", device=device)
+            model = sl.Sei_LLRA(k=rank, projection=False, mode="sequence", quant=quant)
     else:
         raise ValueError(f"Unknown model: {model_name}")
     

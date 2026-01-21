@@ -281,7 +281,7 @@ def initialize_model(model_name: str, dummy_input: torch.Tensor, rank: int, devi
             model_quantized = SeiWrapper(k=rank, projection=False, mode="sequence", device="cuda")
             model_quantized.to(device)
         else:
-            model_quantized = sl.Sei_LLRA(k=rank, projection=False, mode="sequence", device="cuda")
+            model_quantized = sl.Sei_LLRA(k=rank, projection=False, mode="sequence")
             model_quantized.to(device)
             print(model_quantized)
             is_quantized = True

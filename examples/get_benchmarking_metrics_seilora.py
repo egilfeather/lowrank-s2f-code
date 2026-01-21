@@ -134,11 +134,15 @@ def initialize_models(rank: int, trained_version: str, quant: bool, full = False
         dev = "cpu"
     else:
         dev = 'cuda:1' if torch.cuda.is_available() else 'cpu'
+    if dev == "cpu":
+        q = "CPU"
+    else:
+        q = None
     if not full:
-        cp_model_seq = sl.Sei_LLRA(k=rank, projection = False, mode = "sequence", device = dev)
-        cp_model_var = sl.Sei_LLRA(k=rank, projection = False, mode = "variant", device = dev)
-        sc_model_seq = sl.Sei_LLRA(k=rank, projection = True, mode = "sequence", device = dev)
-        sc_model_var = sl.Sei_LLRA(k=rank, projection = True, mode = "variant", device = dev)
+        cp_model_seq = sl.Sei_LLRA(k=rank, projection = False, mode = "sequence", quant = q)
+        cp_model_var = sl.Sei_LLRA(k=rank, projection = False, mode = "variant", quant = q)
+        sc_model_seq = sl.Sei_LLRA(k=rank, projection = True, mode = "sequence", quant = q)
+        sc_model_var = sl.Sei_LLRA(k=rank, projection = True, mode = "variant", quant = q)
 
         if quant != True:
             cp_model_seq.trunk.load_weights()

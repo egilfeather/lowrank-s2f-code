@@ -29,8 +29,7 @@ Process data:
 
 ```
 ├── README.md
-├── requirements.txt
-├── sample_usage.ipynb
+├── environment.yml
 ├── data/
 │   └── ...
 ├── examples/

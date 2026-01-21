@@ -70,7 +70,7 @@ def main(rank=256):
     if not os.path.exists(f"checkpoint_{rank}"):
         os.makedirs(f"checkpoint_{rank}")
     dev =  "cpu" #'cuda:1'
-    model = sl.Sei_LLRA(k=rank, projection = False, mode = "variant", device = dev)
+    model = sl.Sei_LLRA(k=rank, projection = False, mode = "variant", quant = "CPU")
     model.eval()
     vcf = "../data/finetune_gtex_filtered.tsv"
     train_dataset = SeqDataset(file_path=vcf,fasta_path="../../sei-framework-main/resources/hg38_UCSC.fa",
