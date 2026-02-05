@@ -1,13 +1,10 @@
 #!/usr/bin/env python 
 import os, sys, csv
-# sys.path.append(os.path.abspath(os.path.join(os.getcwd(), '..')))
 import numpy as np
 import torch
 import torch.nn as nn
-# import sei_lora.module
 import pandas as pd
 from seq_dataloader import VariantDataset, SeqDataLoader, SeqDataset, VariantDataLoader
-# from sei_lora.model import get_celltype_asssy_specific, get_sequence_class_scores_and_max #Variant_Prediction_Processor, load_to_anndata
 from tqdm import tqdm
 import scipy
 from sklearn.metrics import average_precision_score, matthews_corrcoef
@@ -22,9 +19,6 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import math
 
-# import grelu.resources
-# import wandb
-# import time
 from borzoi_lora_arch_mha import BorzoiModel, EnformerModel
 import grelu.resources
 
@@ -40,7 +34,7 @@ MODEL_PARAMS = {
             "microglia": [2052],
             "smc" : [2097], 
             "spi1": [2405],
-            "pai_mask": "exon", #"gene",
+            "pai_mask": "exon",
             "pai_metric": "SAR",
             "cbpnet_mask": "center",
             "cbpnet_metric": "log2_diff",
@@ -55,7 +49,7 @@ MODEL_PARAMS = {
             "smc" : [82], 
             "spi1": [907],
             "pai_mask": "all",
-            "pai_metric": "log2_diff",
+            "pai_metric": "SAD",
             "cbpnet_mask": "center_8",
             "cbpnet_metric": "SAR",
 
@@ -272,149 +266,6 @@ def initialize_models(k_l: int, quant: bool, model_name = "borzoi", full = False
   
     return model
 
-def get_cp_sequence_metrics(model, rank, trained_version="", scores_path="", bed_path = ""):
-    benchmark_name = "chromatin_profile_pearson"
-
-    # cps = predicted scores, scores = ground truth (binary or continuous)
-    cps, scores = get_scores(
-        model, bed_path, rank=rank, benchmark_name=benchmark_name,
-        trained_version=trained_version, scores=scores_path
-    )
-
-    # --- 1. Row-wise similarity metrics (sample-level) ---
-    pearson_corrs = []
-    spearman_corrs = []
-    for y_true, y_pred in zip(scores, cps):
-        if np.std(y_true) > 0 and np.std(y_pred) > 0:
-            pearson_corrs.append(np.corrcoef(y_true, y_pred)[0, 1])
-            spearman_corrs.append(spearmanr(y_true, y_pred).correlation)
-
-    avg_pearson = np.nanmean(pearson_corrs)
-    avg_spearman = np.nanmean(spearman_corrs)
-
-    # --- 2. Column-wise prediction metrics (task-level) ---
-    n_cols = scores.shape[1]
-    ap_scores = []
-    auroc_scores = []
-    f1_scores = []
-    mcc_scores = []
-
-    for j in range(n_cols):
-        y_true_col = scores[:, j]
-        y_pred_col = cps[:, j]
-
-        if y_true_col.sum() == 0 or y_true_col.sum() == len(y_true_col):
-            continue  # skip columns with no positive/negative labels
-
-        y_true_bin = (y_true_col > 0.5).astype(int)
-
-        # AP (same as AUPRC)
-        ap_scores.append(average_precision_score(y_true_bin, y_pred_col))
-
-        # AUROC
-        try:
-            auroc_scores.append(roc_auc_score(y_true_bin, y_pred_col))
-        except ValueError:
-            pass
-
-        # F1 and MCC (need hard predictions)
-        y_pred_bin = (y_pred_col > 0.5).astype(int)
-        f1_scores.append(f1_score(y_true_bin, y_pred_bin, zero_division= np.nan))
-        if np.std(y_pred_bin) > 0 and np.std(y_true_bin) > 0:
-            mcc_scores.append(matthews_corrcoef(y_true_bin, y_pred_bin))
-
-    diagnostics = {
-        # Row-wise similarity
-        "avg_pearson": float(avg_pearson),
-        "avg_spearman": float(avg_spearman),
-
-        # Column-wise accuracy
-        "avg_ap": float(np.nanmean(ap_scores)),
-        "avg_auprc": float(np.nanmean(ap_scores)),  # identical to AP
-        "avg_auroc": float(np.nanmean(auroc_scores)),
-        "avg_f1": float(np.nanmean(f1_scores)),
-        "avg_mcc": float(np.nanmean(mcc_scores)),
-
-        # Dataset-level info
-        "mean_true_sum_per_row": float(scores.sum(axis=1).mean()),
-        "mean_pred_sum_per_row": float(cps.sum(axis=1).mean()),
-    }
-
-    return diagnostics
-
-def get_sc_sequence_metrics(model, rank, trained_version="", scores_path="", bed_path = ""):
-    benchmark_name = "sequence_class_pearson"
-
-    # cps = predicted scores, scores = ground truth (binary or continuous)
-    cps, scores = get_scores(
-        model, bed_path, rank=rank, benchmark_name=benchmark_name,
-        trained_version=trained_version, scores=scores_path, sc = True
-    )
-
-    # --- 1. Row-wise similarity metrics (sample-level) ---
-    pearson_corrs = []
-    spearman_corrs = []
-    for y_true, y_pred in zip(scores, cps):
-        if np.std(y_true) > 0 and np.std(y_pred) > 0:
-            y_true = y_true[:40]
-            y_pred = y_pred[:40]
-            pearson_corrs.append(np.corrcoef(y_true, y_pred)[0, 1])
-            spearman_corrs.append(spearmanr(y_true, y_pred).correlation)
-
-    avg_pearson = np.nanmean(pearson_corrs)
-    avg_spearman = np.nanmean(spearman_corrs)
-
-    # --- 2. Column-wise prediction metrics (task-level) ---
-    n_cols = 40
-    ap_scores = []
-    auroc_scores = []
-    f1_scores = []
-    mcc_scores = []
-
-    for j in range(n_cols):
-        y_true_col = expit(scores[:, j])
-        y_pred_col = expit(cps[:, j])
-
-        if y_true_col.sum() == 0 or y_true_col.sum() == len(y_true_col):
-            continue  # skip columns with no positive/negative labels
-
-        y_true_bin = (y_true_col > 0.5).astype(int)
-
-        # AP (same as AUPRC)
-        ap_scores.append(average_precision_score(y_true_bin, y_pred_col))
-
-        # AUROC
-        try:
-            auroc_scores.append(roc_auc_score(y_true_bin, y_pred_col))
-        except ValueError:
-            pass
-
-        # F1 and MCC (need hard predictions)
-        y_pred_bin = (y_pred_col > 0.5).astype(int)
-        f1_scores.append(f1_score(y_true_bin, y_pred_bin, zero_division=np.nan))
-        if np.std(y_pred_bin) > 0 and np.std(y_true_bin) > 0:
-            mcc_scores.append(matthews_corrcoef(y_true_bin, y_pred_bin))
-
-    diagnostics = {
-        # Row-wise similarity
-        "avg_pearson": float(avg_pearson),
-        "avg_spearman": float(avg_spearman),
-
-        # Column-wise accuracy
-        "avg_ap": float(np.nanmean(ap_scores)),
-        "avg_auprc": float(np.nanmean(ap_scores)),  # identical to AP
-        "avg_auroc": float(np.nanmean(auroc_scores)),
-        "avg_f1": float(np.nanmean(f1_scores)),
-        "avg_mcc": float(np.nanmean(mcc_scores)),
-
-        # Dataset-level info
-        "mean_true_sum_per_row": float(scores.sum(axis=1).mean()),
-        "mean_pred_sum_per_row": float(cps.sum(axis=1).mean()),
-    }
-
-    return diagnostics
-
-
 
 def get_gtex_eqtls_promoter(model, rank, trained_version = "", model_name = "borzoi"):
     benchmark_name = "gtex_eqtls_near_promoter"
@@ -501,16 +352,19 @@ def get_over_under_null(scores, vcf, df):
 
     df_ou = df[df['consequence'].isin(['over', 'under'])].copy()
     df_combine_ou = df_ou.merge(df_pred, left_on = ["chrom", "pos", "ref", "alt"], right_on=["CHROM", "POS", "REF", "ALT"], how = "inner")
+    df_combine_ou = df_combine_ou.drop_duplicates()
     binary_labels_ou = (df_combine_ou['consequence'] == 'over')
     roc_promoter_ou = roc_auc_score(binary_labels_ou, df_combine_ou["score"])
 
     df_un = df[df['consequence'].isin(['under', 'none'])].copy()
     df_combine_un = df_un.merge(df_pred, left_on = ["chrom", "pos", "ref", "alt"], right_on=["CHROM", "POS", "REF", "ALT"], how = "inner")
+    df_combine_un = df_combine_un.drop_duplicates()
     binary_labels_un = (df_combine_un['consequence'] == 'under')
     roc_promoter_un = roc_auc_score(binary_labels_un, -df_combine_un["score"])
 
     df_on = df[df['consequence'].isin(['over', 'none'])].copy()
     df_combine_on = df_on.merge(df_pred, left_on = ["chrom", "pos", "ref", "alt"], right_on=["CHROM", "POS", "REF", "ALT"], how = "inner")
+    df_combine_on = df_combine_on.drop_duplicates()
     binary_labels_on = (df_combine_on['consequence'] == 'over')
     roc_promoter_on = roc_auc_score(binary_labels_on, df_combine_on["score"])
     return roc_promoter_ou, roc_promoter_un, roc_promoter_on 
@@ -555,7 +409,6 @@ def get_yoruba_lcl_dsqtls(model, rank, trained_version = "", model_name = "borzo
     
     df = pd.read_csv("./data/dsqtls.yoruba.lcls.benchmarking.all.tsv", index_col=False,  header = 0, sep = "\t")
     df = df[df["var.isused"]]
-    # df = df[df["obs.label"] ==1]
   
     df_pred = pd.DataFrame(vcf, columns=["CHROM", "POS", "NAME", "REF", "ALT"])
     df_pred["POS"] = df_pred["POS"].astype(int)
@@ -580,7 +433,6 @@ def get_afr_lcl_caqtls(model, rank, trained_version = "", model_name = "borzoi",
     df = pd.read_csv("./data/caqtls.african.lcls.benchmarking.tsv", header = 0, sep = "\t")
     df = df[df["var.isused"]]
     df = df.dropna(subset=["obs.label"])
-    # df["log10p"] = np.log10(df["obs.pval"])*-1
 
     df_pred = pd.DataFrame(vcf, columns=["CHROM", "POS", "NAME", "REF", "ALT"])
     df_pred["POS"] = df_pred["POS"].astype(int)
@@ -685,7 +537,7 @@ def get_variants(model, vcf, rank, benchmark_name="", trained_version = "", mode
             continue
         ref, alt, vcf = batch
         ref, alt = ref.to(device), alt.to(device)
-        ref_outputs = model(ref)  # both are tuples: (refproj, altproj)
+        ref_outputs = model(ref) 
         alt_outputs = model(alt)
     
         ref_outputs, alt_outputs =  ref_outputs.detach().cpu(), alt_outputs.detach().cpu()
@@ -826,126 +678,39 @@ def save_output(rank_l = 256, trained_version = "", quant = False, model_name = 
             print(f"Results saved to {pai_path}")
     ## ChrombpNet
     
-    yoruba_pearson, yoruba_ap = get_yoruba_lcl_dsqtls(model = model, rank = rank_l,  trained_version = trained_version, model_name = model_name)
-    eu_pearson, eu_ap = get_eu_lcl_caqtls(model = model, rank = rank_l,  trained_version = trained_version, model_name = model_name)
-    afr_pearson, afr_ap = get_afr_lcl_caqtls(model = model, rank = rank_l,  trained_version = trained_version, model_name = model_name)
-    microglia_pearson = get_microglia_caqtls(model = model, rank = rank_l, trained_version = trained_version, model_name = model_name)
-    smc_pearson = get_smc_caqtls(model = model, rank = rank_l,  trained_version = trained_version, model_name = model_name)
-    spi1_pearson = get_spi1_bqtls(model = model, rank = rank_l, trained_version = trained_version, model_name = model_name)
+    # yoruba_pearson, yoruba_ap = get_yoruba_lcl_dsqtls(model = model, rank = rank_l,  trained_version = trained_version, model_name = model_name)
+    # eu_pearson, eu_ap = get_eu_lcl_caqtls(model = model, rank = rank_l,  trained_version = trained_version, model_name = model_name)
+    # afr_pearson, afr_ap = get_afr_lcl_caqtls(model = model, rank = rank_l,  trained_version = trained_version, model_name = model_name)
+    # microglia_pearson = get_microglia_caqtls(model = model, rank = rank_l, trained_version = trained_version, model_name = model_name)
+    # smc_pearson = get_smc_caqtls(model = model, rank = rank_l,  trained_version = trained_version, model_name = model_name)
+    # spi1_pearson = get_spi1_bqtls(model = model, rank = rank_l, trained_version = trained_version, model_name = model_name)
 
-    bpn_path = f"micro_benchmark_chrombpnet_full.tsv"
-    bpn_row_dict = {
-        "model": model_name_rank,
-        "EU_LCL_pearson_signed": round(eu_pearson.statistic, 4),
-        "Yoruba_LCL_pearson_signed": round(yoruba_pearson.statistic, 4),
-        "African_LCL_pearson_signed":round(afr_pearson.statistic, 4),
-        "EU_Microglia_pearson_signed": round(microglia_pearson.statistic, 4),
-        "EU_spi1_LCL_pearson_signed": round(spi1_pearson.statistic, 4),
-        "EU_SMC_pearson_signed": round(smc_pearson.statistic, 4),
+    # bpn_path = f"benchmark_chrombpnet_full.tsv"
+    # bpn_row_dict = {
+    #     "model": model_name_rank,
+    #     "EU_LCL_pearson_signed": round(eu_pearson.statistic, 4),
+    #     "Yoruba_LCL_pearson_signed": round(yoruba_pearson.statistic, 4),
+    #     "African_LCL_pearson_signed":round(afr_pearson.statistic, 4),
+    #     "EU_Microglia_pearson_signed": round(microglia_pearson.statistic, 4),
+    #     "EU_spi1_LCL_pearson_signed": round(spi1_pearson.statistic, 4),
+    #     "EU_SMC_pearson_signed": round(smc_pearson.statistic, 4),
 
-        "EU_LCL_AP_unsigned": round(eu_ap, 4),
-        "Yoruba_AP_LCL_unsigned": round(yoruba_ap, 4),
-        "African_AP_unsigned": round(afr_ap, 4)
+    #     "EU_LCL_AP_unsigned": round(eu_ap, 4),
+    #     "Yoruba_AP_LCL_unsigned": round(yoruba_ap, 4),
+    #     "African_AP_unsigned": round(afr_ap, 4)
   
-    }
-
-    file_exists = os.path.isfile(bpn_path)
-    with open(bpn_path, "a", newline="") as f:
-           writer = csv.DictWriter(f, fieldnames=bpn_row_dict.keys(), delimiter="\t")
-           if not file_exists:
-               writer.writeheader()
-           writer.writerow(bpn_row_dict)
-
-           print(f"Results saved to {bpn_path}")
+    # }
 
     # file_exists = os.path.isfile(bpn_path)
     # with open(bpn_path, "a", newline="") as f:
-    #        writer = csv.DictWriter(f, delimiter="\t")
+    #        writer = csv.DictWriter(f, fieldnames=bpn_row_dict.keys(), delimiter="\t")
     #        if not file_exists:
     #            writer.writeheader()
-    #        writer.writerow(microglia_pearson)
+    #        writer.writerow(bpn_row_dict)
 
     #        print(f"Results saved to {bpn_path}")
-    ## Scores
-
-    # diagnostic_sei_sc = get_sc_sequence_metrics(model = sc_seq_mod, rank = rank, trained_version = trained_version, scores_path = "../..//filtered_sequence_segments.raw_sequence_class_scores.npy", bed_path = "../../filtered_sequence_segments_score.bed")
-    # diagnostic_sei_preds = get_cp_sequence_metrics(model = cp_seq_mod, rank = rank, trained_version = trained_version, scores_path = "../../sei_predictions/chromatin-profiles-hdf5/filtered_sequence_segments_score_predictions.h5", bed_path = "../../filtered_sequence_segments_score.bed")
-    # diagnostic_cistrome = get_cp_sequence_metrics(model = cp_seq_mod, rank = rank, trained_version = trained_version, scores_path = "./filtered_sequence_segments_cistrome.h5", bed_path = "../../filtered_sequence_segments_score.bed")
-
-    # scores_path = "benchmark_scores.tsv"    
-    # scores_row_dict = {
-    #     "model": model_name_rank,
-    #     "CP_Teacher_Pearson": round(diagnostic_sei_preds["avg_pearson"], 4),
-    #     "CP_Teacher_Spearman": round(diagnostic_sei_preds["avg_spearman"], 4),
-    #     "CP_Teacher_AP": round(diagnostic_sei_preds["avg_ap"], 4),
-    #     "CP_Teacher_MCC": round(diagnostic_sei_preds["avg_mcc"], 4),
-    #     "CP_Teacher_F1": round(diagnostic_sei_preds["avg_f1"], 4),
-    #     "CP_Teacher_AUROC": round(diagnostic_sei_preds["avg_auroc"], 4),
-
-    #     "CP_Cistrome_Pearson": round(diagnostic_cistrome["avg_pearson"], 4),
-    #     "CP_Cistrome_Spearman": round(diagnostic_cistrome["avg_spearman"], 4),
-    #     "CP_Cistrome_AP": round(diagnostic_cistrome["avg_ap"], 4),
-    #     "CP_Cistrome_MCC": round(diagnostic_cistrome["avg_mcc"], 4),
-    #     "CP_Cistrome_F1": round(diagnostic_cistrome["avg_f1"], 4),
-    #     "CP_Cistrome_AUROC": round(diagnostic_cistrome["avg_auroc"], 4),
-
-    #     "SC_Teacher_Pearson": round(diagnostic_sei_sc["avg_pearson"], 4),
-    #     "SC_Teacher_Spearman": round(diagnostic_sei_sc["avg_spearman"], 4),
-    #     "SC_Teacher_AP": round(diagnostic_sei_sc["avg_ap"], 4),
-    #     "SC_Teacher_MCC": round(diagnostic_sei_sc["avg_mcc"], 4),
-    #     "SC_Teacher_F1": round(diagnostic_sei_sc["avg_f1"], 4),
-    #     "SC_Teacher_AUROC": round(diagnostic_sei_sc["avg_auroc"], 4),
-    # }
-
-    # file_exists = os.path.isfile(scores_path)
-    # with open(scores_path, "a", newline="") as f:
-    #         writer = csv.DictWriter(f, fieldnames=scores_row_dict.keys(), delimiter="\t")
-    #         if not file_exists:
-    #             writer.writeheader()
-    #         writer.writerow(scores_row_dict)
-
-    #         print(f"Results saved to {scores_path}")
-
-    # diagnostic_sei_sc_cCREs = get_sc_sequence_metrics(model = sc_seq_mod, rank = rank, trained_version = trained_version, scores_path = "./GRCh38_cCREs_4kb.h5.raw_sequence_class_scores.npy", bed_path = "./GRCh38_cCREs_4kb.bed")
-    # diagnostic_sei_preds_cCREs = get_cp_sequence_metrics(model = cp_seq_mod, rank = rank, trained_version = trained_version, scores_path = "./GRCh38_cCREs_4kb.h5", bed_path = "./GRCh38_cCREs_4kb.bed")
-    # diagnostic_cistrome_cCREs = get_cp_sequence_metrics(model = cp_seq_mod, rank = rank, trained_version = trained_version, scores_path = "./GRCh38_cCREs_4kb_cistrome.h5", bed_path = "./GRCh38_cCREs_4kb.bed")
-    
 
 
-    # # dictionary of results
-    # scores_cres_path = "benchmark_scores_cCRE_regions.tsv"
-    # scores_cres_row_dict = {
-    #     "model": model_name,
-    #     "CP_cCREs_Teacher_Pearson": round(diagnostic_sei_preds_cCREs["avg_pearson"], 4),
-    #     "CP_cCREs_Teacher_Spearman": round(diagnostic_sei_preds_cCREs["avg_spearman"], 4),
-    #     "CP_cCREs_Teacher_AP": round(diagnostic_sei_preds_cCREs["avg_ap"], 4),
-    #     "CP_cCREs_Teacher_MCC": round(diagnostic_sei_preds_cCREs["avg_mcc"], 4),
-    #     "CP_cCREs_Teacher_F1": round(diagnostic_sei_preds_cCREs["avg_f1"], 4),
-    #     "CP_cCREs_Teacher_AUROC": round(diagnostic_sei_preds_cCREs["avg_auroc"], 4),
-
-    #     "CP_cCREs_Cistrome_Pearson": round(diagnostic_cistrome_cCREs["avg_pearson"], 4),
-    #     "CP_cCREs_Cistrome_Spearman": round(diagnostic_cistrome_cCREs["avg_spearman"], 4),
-    #     "CP_cCREs_Cistrome_AP": round(diagnostic_cistrome_cCREs["avg_ap"], 4),
-    #     "CP_cCREs_Cistrome_MCC": round(diagnostic_cistrome_cCREs["avg_mcc"], 4),
-    #     "CP_cCREs_Cistrome_F1": round(diagnostic_cistrome_cCREs["avg_f1"], 4),
-    #     "CP_cCREs_Cistrome_AUROC": round(diagnostic_cistrome_cCREs["avg_auroc"], 4),
-
-    #     # "SC_cCREs_Teacher_Pearson": round(diagnostic_sei_sc_cCREs["avg_pearson"], 4),
-    #     # "SC_cCREs_Teacher_Spearman": round(diagnostic_sei_sc_cCREs["avg_spearman"], 4),
-    #     # "SC_cCREs_Teacher_AP": round(diagnostic_sei_sc_cCREs["avg_ap"], 4),
-    #     # "SC_cCREs_Teacher_MCC": round(diagnostic_sei_sc_cCREs["avg_mcc"], 4),
-    #     # "SC_cCREs_Teacher_F1": round(diagnostic_sei_sc_cCREs["avg_f1"], 4),
-    #     # "SC_cCREs_Teacher_AUROC": round(diagnostic_sei_sc_cCREs["avg_auroc"], 4),
-    # }
-
-    # file_exists = os.path.isfile(scores_cres_path)
-    # with open(scores_cres_path, "a", newline="") as f:
-    #         writer = csv.DictWriter(f, fieldnames=scores_cres_row_dict.keys(), delimiter="\t")
-    #         if not file_exists:
-    #             writer.writeheader()
-    #         writer.writerow(scores_cres_row_dict)
-
-    #         print(f"Results saved to {scores_cres_path}")
 
     torch.cuda.empty_cache()
 

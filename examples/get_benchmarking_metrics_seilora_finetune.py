@@ -6,7 +6,7 @@ import torch
 import torch.nn as nn
 import pandas as pd
 from sei_lora.dataloaders import VariantDataset, SeqDataLoader, SeqDataset, VariantDataLoader, EmbeddingDataLoader, EmbeddingScoreDataLoader
-from sei_lora.score import get_celltype_asssy_specific, get_sequence_class_scores_and_max #Variant_Prediction_Processor, load_to_anndata
+from sei_lora.score import get_celltype_asssy_specific, get_sequence_class_scores_and_max 
 from tqdm import tqdm
 import scipy
 from sklearn.metrics import average_precision_score, matthews_corrcoef
@@ -17,13 +17,9 @@ from scipy.special import expit
 from sklearn.metrics import average_precision_score, matthews_corrcoef, f1_score, roc_auc_score
 import seimodel as sm
 import seillra as sl
-# from .get_models import get_sei_trunk_q, get_sei_head_lora
 import torch.nn as nn
 import torch
-# import os, sys
-# print(os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../../../seimodel-dev/dist/seimodel/src')))
-# sys.path.append(os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../../../seimodel-dev/dist/seimodel/src')))
-# import sei_projection as sm
+
 
 import os, sys
 from typing import Optional, Literal
@@ -343,16 +339,19 @@ def get_over_under_null(sc_ref, sc_alt, vcf, df, trained_version = None):
 
     df_ou = df[df['consequence'].isin(['over', 'under'])].copy()
     df_combine_ou = df_ou.merge(df_pred, left_on = ["chrom", "pos", "ref", "alt"], right_on=["CHROM", "POS", "REF", "ALT"], how = "inner")
+    df_combine_ou = df_combine_ou.drop_duplicates()
     binary_labels_ou = (df_combine_ou['consequence'] == 'over')
     roc_promoter_ou = roc_auc_score(binary_labels_ou, df_combine_ou["Promoter"])
 
     df_un = df[df['consequence'].isin(['under', 'none'])].copy()
     df_combine_un = df_un.merge(df_pred, left_on = ["chrom", "pos", "ref", "alt"], right_on=["CHROM", "POS", "REF", "ALT"], how = "inner")
+    df_combine_un = df_combine_un.drop_duplicates()
     binary_labels_un = (df_combine_un['consequence'] == 'under')
     roc_promoter_un = roc_auc_score(binary_labels_un, -df_combine_un["Promoter"])
 
     df_on = df[df['consequence'].isin(['over', 'none'])].copy()
     df_combine_on = df_on.merge(df_pred, left_on = ["chrom", "pos", "ref", "alt"], right_on=["CHROM", "POS", "REF", "ALT"], how = "inner")
+    df_combine_on = df_combine_on.drop_duplicates()
     binary_labels_on = (df_combine_on['consequence'] == 'over')
     roc_promoter_on = roc_auc_score(binary_labels_on, df_combine_on["Promoter"])
 
@@ -397,7 +396,6 @@ def get_yoruba_lcl_dsqtls(model, rank, trained_version = ""):
     
     df = pd.read_csv("../data/dsqtls.yoruba.lcls.benchmarking.all.tsv", index_col=False,  header = 0, sep = "\t")
     df = df[df["var.isused"]]
-    # df = df[df["obs.label"] ==1]
     
     cp_ref, cp_alt, vcf = get_variants(model, vcf_name, rank = rank, benchmark_name=benchmark_name, trained_version = trained_version)
     diff = cp_alt - cp_ref
@@ -421,7 +419,6 @@ def get_afr_lcl_caqtls(model, rank, trained_version = ""):
     df = pd.read_csv("../data/caqtls.african.lcls.benchmarking.tsv", header = 0, sep = "\t")
     df = df[df["var.isused"]]
     df = df.dropna(subset=["obs.label"])
-    # df["log10p"] = np.log10(df["obs.pval"])*-1
    
     diff = cp_alt - cp_ref
     df_pred = pd.DataFrame(vcf, columns=["CHROM", "POS", "NAME", "REF", "ALT"])
@@ -586,8 +583,6 @@ def save_output(rank = 256, trained_version = None, quant = False, full = False,
 
     model_name = f"seilora_{rank}_{trained_version}_{q}" 
 
-
-    # cp_seq_mod, cp_var_mod, sc_seq_mod, sc_var_mod = initialize_models(rank = rank, trained_version = trained_version, quant = quant, full = full)
     sc_var_mod = initialize_models(rank = rank, trained_version = trained_version, quant = quant, full = full, file_path= file_path)
 
     ## PromoterAI
@@ -599,11 +594,6 @@ def save_output(rank = 256, trained_version = None, quant = False, full = False,
     ukbb_proteome = get_ukbb_proteome_promoter(model = sc_var_mod, rank = rank, trained_version = trained_version)
     gel_rna = get_gel_rna_promoter(model = sc_var_mod, rank = rank, trained_version = trained_version)
     
-    # # spi1_pearson = get_spi1_bqtls(model = cp_var_mod, rank = rank, trained_version = trained_version)
-
-    # print(gtex_outliers)
-    # print(mpra_eqtls)
-    # print(ukbb_proteome)
 
     pai_path = "benchmark_pai_all_ft.tsv"
     pai_row_dict = {

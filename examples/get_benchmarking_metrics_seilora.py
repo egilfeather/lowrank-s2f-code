@@ -6,7 +6,7 @@ import torch
 import torch.nn as nn
 import pandas as pd
 from sei_lora.dataloaders import VariantDataset, SeqDataLoader, SeqDataset, VariantDataLoader
-from sei_lora.score import get_celltype_asssy_specific, get_sequence_class_scores_and_max #Variant_Prediction_Processor, load_to_anndata
+from sei_lora.score import get_celltype_asssy_specific, get_sequence_class_scores_and_max 
 from tqdm import tqdm
 import scipy
 from sklearn.metrics import average_precision_score, matthews_corrcoef
@@ -17,22 +17,13 @@ from scipy.special import expit
 from sklearn.metrics import average_precision_score, matthews_corrcoef, f1_score, roc_auc_score
 import seimodel as sm
 import seillra as sl
-# from .get_models import get_sei_trunk_q, get_sei_head_lora
 import torch.nn as nn
 import torch
-# import os, sys
-# print(os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../../../seimodel-dev/dist/seimodel/src')))
-# sys.path.append(os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../../../seimodel-dev/dist/seimodel/src')))
-# import sei_projection as sm
+
 
 import os, sys
 from typing import Optional, Literal
 
-# here = os.path.dirname(os.path.abspath(__file__))
-# seimodel_root = os.path.abspath(os.path.join(here, '../../../../seimodel-dev/dist'))
-# sys.path.append(seimodel_root)
-
-# from seimodel.src import get_seimodels as sm
 class SeiWrapper(nn.Module):
     def __init__(self, k: int, ft: Optional[str] = None, projection: bool = True, mode: Literal["sequence", "variant"] = "sequence", device: str = "cpu"):
         super().__init__()
@@ -156,13 +147,6 @@ def initialize_models(rank: int, trained_version: str, quant: bool, full = False
         sc_model_var = SeiWrapper(k=rank, ft = trained_version, projection = True, mode = "variant", device = dev)
 
 
-    
-
-    # cp_model_seq = sl.SeiLoraWrapper(k=rank, projection = False, mode = "sequence")
-    # cp_model_var = sl.SeiLoraWrapper(k=rank, projection = False, mode = "variant")
-    # sc_model_seq = sl.SeiLoraWrapper(k=rank, projection = True, mode = "sequence")
-    # sc_model_var = sl.SeiLoraWrapper(k=rank, projection = True, mode = "variant")
-
     return cp_model_seq, cp_model_var, sc_model_seq, sc_model_var
 
 
@@ -240,25 +224,22 @@ def get_over_under_null(sc_ref, sc_alt, vcf, df):
 
     df_ou = df[df['consequence'].isin(['over', 'under'])].copy()
     df_combine_ou = df_ou.merge(df_pred, left_on = ["chrom", "pos", "ref", "alt"], right_on=["CHROM", "POS", "REF", "ALT"], how = "inner")
+    df_combine_ou = df_combine_ou.drop_duplicates()
     binary_labels_ou = (df_combine_ou['consequence'] == 'over')
     roc_promoter_ou = roc_auc_score(binary_labels_ou, df_combine_ou["Promoter"])
 
     df_un = df[df['consequence'].isin(['under', 'none'])].copy()
     df_combine_un = df_un.merge(df_pred, left_on = ["chrom", "pos", "ref", "alt"], right_on=["CHROM", "POS", "REF", "ALT"], how = "inner")
+    df_combine_un = df_combine_un.drop_duplicates()
     binary_labels_un = (df_combine_un['consequence'] == 'under')
     roc_promoter_un = roc_auc_score(binary_labels_un, -df_combine_un["Promoter"])
 
     df_on = df[df['consequence'].isin(['over', 'none'])].copy()
     df_combine_on = df_on.merge(df_pred, left_on = ["chrom", "pos", "ref", "alt"], right_on=["CHROM", "POS", "REF", "ALT"], how = "inner")
+    df_combine_on = df_combine_on.drop_duplicates()
     binary_labels_on = (df_combine_on['consequence'] == 'over')
     roc_promoter_on = roc_auc_score(binary_labels_on, df_combine_on["Promoter"])
 
-    # prefix = "cagi_sat"
-    # df_combine_ou.to_csv(f"{prefix}_combine_ou.tsv", sep="\t", index=False)
-    # df_combine_un.to_csv(f"{prefix}_combine_un.tsv", sep="\t", index=False)
-    # df_combine_on.to_csv(f"{prefix}_combine_on.tsv", sep="\t", index=False)
-
-    # print(len(df_combine_ou), len(df_combine_un), len(df_combine_on))
 
     return roc_promoter_ou, roc_promoter_un, roc_promoter_on 
 
@@ -308,8 +289,6 @@ def get_yoruba_lcl_dsqtls(model, rank, trained_version = ""):
     df_pred = pd.DataFrame(vcf, columns=["CHROM", "POS", "NAME", "REF", "ALT"])
     df_pred["POS"] = df_pred["POS"].astype(int)
     df_pred["GM12878_DNase_cp_mean"] = get_celltype_asssy_specific(diff, celltypes = ["GM12878_B_Lymphocyte_Blood"], assays = ["DNase"], strict = True)
-    # df_pred["GM12878_ATAC_cp_mean"] = get_celltype_asssy_specific(diff, celltypes = ["GM12878_B_Lymphocyte_Blood"], assays = ["ATAC-seq"], strict = True)
-    # df_pred["GM12878_DNase_ATAC_cp_mean"] = get_celltype_asssy_specific(diff, celltypes = ["GM12878_B_Lymphocyte_Blood"], assays = ["DNase", "ATAC-seq"], strict = True)
 
     df_combine = df.merge(df_pred, left_on = ["var.chr", "var.pos_hg38"], right_on=["CHROM", "POS"], how = "inner")
     ap_unsigned = average_precision_score(df_combine["obs.label"], abs(df_combine["GM12878_DNase_cp_mean"]))
@@ -317,11 +296,7 @@ def get_yoruba_lcl_dsqtls(model, rank, trained_version = ""):
 
     df_combine = df_combine[df_combine["obs.label"] ==1]
     pearson_signed = scipy.stats.pearsonr(-df_combine["GM12878_DNase_cp_mean"],df_combine["obs.estimate"])
-    # pearson_signed2 = scipy.stats.pearsonr(df_combine["GM12878_ATAC_cp_mean"],df_combine["obs.estimate"])
-    # pearson_signed3 = scipy.stats.pearsonr(df_combine["GM12878_DNase_ATAC_cp_mean"],df_combine["obs.estimate"])
-    # print(f"Yoruba pearson: DNase: {pearson_signed}, ATAC: {pearson_signed2}, Both: {pearson_signed3}")
-    # pearson2 = scipy.stats.pearsonr(df_combine["pred.chrombpnet.encsr000emt.varscore.logfc"],df_combine["obs.estimate"])
-    
+
     return pearson_signed, ap_unsigned
 
 def get_afr_lcl_caqtls(model, rank, trained_version = ""):
@@ -337,9 +312,6 @@ def get_afr_lcl_caqtls(model, rank, trained_version = ""):
     df_pred = pd.DataFrame(vcf, columns=["CHROM", "POS", "NAME", "REF", "ALT"])
     df_pred["POS"] = df_pred["POS"].astype(int)
     df_pred["GM12878_DNase_cp_mean"] = get_celltype_asssy_specific(diff, celltypes = ["GM12878_B_Lymphocyte_Blood"], assays = ["DNase"], strict = True)
-    # df_pred["GM12878_ATAC_cp_mean"] = get_celltype_asssy_specific(diff, celltypes = ["GM12878_B_Lymphocyte_Blood"], assays = ["ATAC-seq"], strict = True)
-    # df_pred["GM12878_DNase_ATAC_cp_mean"] = get_celltype_asssy_specific(diff, celltypes = ["GM12878_B_Lymphocyte_Blood"], assays = ["DNase", "ATAC-seq"], strict = True)
-
 
     df_combine = df.merge(df_pred, left_on = ["var.chr", "var.pos_hg38"], right_on=["CHROM", "POS"], how = "inner")
     ap_unsigned = average_precision_score(df_combine["obs.label"], abs(df_combine["GM12878_DNase_cp_mean"]))
@@ -347,9 +319,7 @@ def get_afr_lcl_caqtls(model, rank, trained_version = ""):
 
     df_combine = df_combine[df_combine["obs.label"] ==1]
     pearson_signed = scipy.stats.pearsonr(df_combine["GM12878_DNase_cp_mean"],df_combine["obs.beta"])
-    # pearson_signed2 = scipy.stats.pearsonr(df_combine["GM12878_ATAC_cp_mean"],df_combine["obs.beta"])
-    # pearson_signed3 = scipy.stats.pearsonr(df_combine["GM12878_DNase_ATAC_cp_mean"],df_combine["obs.beta"])
-    # print(f"Yoruba pearson: DNase: {pearson_signed}, ATAC: {pearson_signed2}, Both: {pearson_signed3}")
+
     return pearson_signed , ap_unsigned
 
 def get_microglia_caqtls(model, rank, trained_version = ""):
@@ -361,14 +331,13 @@ def get_microglia_caqtls(model, rank, trained_version = ""):
     df = df.dropna().drop_duplicates()
     diff = cp_alt - cp_ref
     df_pred = pd.DataFrame(vcf, columns=["CHROM", "POS", "NAME", "REF", "ALT"])
-    # print(len(df_pred))
-    # print(len(df))
+
     df_pred["POS"] = df_pred["POS"].astype(int)
     df_pred["Macrophage_ATAC_cp_mean"] = get_celltype_asssy_specific(diff, celltypes = ["Macrophage"], assays = ["ATAC-seq", "DNase"], strict = False)
 
     df_combine = df.merge(df_pred, left_on = ["var.chr", "var.pos_hg38", "var.allele1", "var.allele2"], right_on=["CHROM", "POS", "REF", "ALT"], how = "inner")
     df_combine = df_combine.dropna().drop_duplicates()
-    # print(len(df_combine))
+
     df_combine.to_csv(f"scores/caqtls_eu_microglia_seilora_rank{rank}_quant.tsv.gz", sep="\t", index=False, compression="gzip")
     pearson_signed = scipy.stats.pearsonr(-df_combine["Macrophage_ATAC_cp_mean"],df_combine["obs.Beta"])
     return pearson_signed
@@ -395,20 +364,20 @@ def get_spi1_bqtls(model, rank, trained_version = ""):
     vcf_name ="../data/bqtls.pu1.lcls.benchmarking.all.vcf"
     cp_ref, cp_alt, vcf = get_variants(model, vcf_name, rank = rank, benchmark_name=benchmark_name, trained_version = trained_version)
     df = pd.read_csv("../data/bqtls.pu1.lcls.benchmarking.tsv", header = 0, sep = "\t")
-    # print(len(df))
+
     df = df[df["var.isused"]]
     diff = cp_alt - cp_ref
-    # print(len(diff))
+
     df_pred = pd.DataFrame(vcf, columns=["CHROM", "POS", "NAME", "REF", "ALT"])
     df_pred["POS"] = df_pred["POS"].astype(int)
     df_pred["GM12878_spi1_cp_mean"] = get_celltype_asssy_specific(diff, celltypes = ["GM12878_B_Lymphocyte_Blood"], assays = ["SPI1"], strict = True)
 
     df_combine = df.merge(df_pred, left_on = ["var.chr", "var.pos_hg38"], right_on=["CHROM", "POS"], how = "inner")
-    # print(len(df_combine))
+
     df_combine.to_csv(f"scores/bsqtls_eu_spi1_seilora_rank{rank}_quant.tsv.gz", sep="\t", index=False, compression="gzip")
     df_combine = df_combine[df_combine["obs.pval"] < 1e-9]
     pearson_signed = scipy.stats.pearsonr(df_combine["GM12878_spi1_cp_mean"],df_combine["obs.chiplogratio"])
-    # print(pearson_signed)
+
     return pearson_signed
 
 
@@ -545,8 +514,7 @@ def save_output(rank = 256, trained_version = None, quant = False, full = False)
 
     yoruba_pearson, yoruba_ap = get_yoruba_lcl_dsqtls(model = cp_var_mod, rank = rank, trained_version = trained_version)
     eu_pearson, eu_ap = get_eu_lcl_caqtls(model = cp_var_mod, rank = rank, trained_version = trained_version)
-    # # print(eu_pearson)
-    # # print(eu_ap)
+
     afr_pearson, afr_ap = get_afr_lcl_caqtls(model = cp_var_mod, rank = rank, trained_version = trained_version)
 
     microglia_pearson = get_microglia_caqtls(model = cp_var_mod, rank = rank, trained_version = trained_version)
