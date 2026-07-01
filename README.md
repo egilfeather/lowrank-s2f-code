@@ -53,34 +53,37 @@ See [seimodel](https://github.com/kostkalab/seimodel) package for Full Sei model
 See [seillra](https://github.com/kostkalab/seillra) package for Low-rank Sei model architecture, weight creation, and quantization.
 
 Low-rank Borzoi and Enformer Model Architecture: `examples/borzoi_lora_arch_mha.py`
+Low-rank AlphaGenome Model Architecture: `examples/ag_arch.py`, `examples/ag_arch_quant.py`
 
 Notebook creating Borzoi and Enformer Model weights: `examples/get_grelu_model_low_rank.ipynb`
+Creating AlphaGenome weights: `examples/ag_get_weights.py`
 
 Quantization of Borzoi and Enformer: `examples/grelu_quantize.py`
+Quantization of AlphaGenome: `examples/ag_static_qunat.py`
 
 ## Figures
 
-### Figure 1: Low-rank Sei, Borzoi, and Enformer
+### Figure 1: Low-rank Sei, Borzoi, Enformer, and AlphaGenome
 
 - `examples/figure1.ipynb` - Plots
 
-#### 1A: Models Schematic
-
-#### 1B: Model rank x parameters
+#### 1A,B: Model rank x parameters
 
 Scripts:
 - `examples/grelu_quantize.py` - calculates Enformer-LLRA and Borzoi-LLRA model sizes
+- `examples/count_ag.py` - calculates AlphaGenome-LLRA model sizes
 - `examples/figure1.ipynb` - calculates Sei-LLRA model sizes
 
-#### 1C: Model rank x MACs
+#### 1C-F: Model rank x MACs
 
 Scripts:
 - `examples/calculate_macs.py` — calculate MACs for each model
 
-#### 1D: Model rank x parameters
+#### 1G: Low rank model correlation with full model
 
 Scripts:
-- `examples/lora_compare_full_cCREs.py` - calculates correlation between full and low rank models
+- `examples/lora_compare_full_cCREs.py` - calculates correlation between full and low rank models (Sei, Enformer, Borzoi)
+- `examples/lora_compare_full_cCREs_ag.py` - calculates correlation between full and low rank models (AlphaGenome)
 
 ---
 
@@ -95,20 +98,17 @@ AuROC predictions for promoter variant effect from 7 datasets from [Jaganathan e
 Scripts:
 - `examples/get_benchmarking_metrics_seilora.py` — prediction for the full Sei model
 - `examples/get_benchmarking_metrics_lora_grelu.py` - prediction for the full Borzoi and Enformer models
+- `examples/get_benchmarking_metrics_lora_ag_refactored.py` - prediction for the full AlphaGenome model
 
 Data:
 - `examples/benchmark_pai_sota.tsv` - tsv file with predictions for ChromBPNet and PromoterAI
 
-#### 2B-D: Low-rank model auROCs
+#### 2B-G: Low-rank model auROCs
 
 Scripts:
 - `examples/get_benchmarking_metrics_seilora.py` — prediction for the low-rank Sei model
 - `examples/get_benchmarking_metrics_lora_grelu.py` - prediction for the low-rank Borzoi and Enformer models
-
-Output:
-- `examples/borzoi_fixed_benchmark_promoterai.tsv` - tsv file with predictions for Borzoi-LLRA
-- `examples/enformer_fixed_benchmark_promoterai.tsv` - tsv file with predictions for Enformer-LLRA
-- `examples/benchmark_pai_seilora.tsv` - tsv file with predictions for Sei-LLRA
+- `examples/get_benchmarking_metrics_lora_ag_refactored.py` - prediction for the low-rank AlphaGenome model
 
 ---
 
@@ -118,19 +118,21 @@ Output:
 
 #### 3A,B: Quantized models inference time on CPU
 
-Calculates inference time for all 3 model, full, LLRA quantized, and LLRA unquantized.
+Calculates inference time for all 4 models, full, LLRA quantized, and LLRA unquantized.
 
 Scripts:
-- `examples/timing_grelu_full_track_cpu.py` — time inference for the quantized models
-- `examples/timing_grelu_full_track_cpu_noquant.py` — time inference for the un-quantized models
+- `examples/timing_grelu_full_track_cpu.py` — time inference for the quantized models (Sei, Enformer, Borzoi)
+- `examples/timing_grelu_full_track_cpu_noquant.py` — time inference for the un-quantized models (Sei, Enformer, Borzoi)
+- `examples/benchmark_inference_realistic.py` — time inference for the un-quantized models (AlphaGenome)
+- `examples/benchmark_quantized_realistic.py` — time inference for the quantized models (AlphaGenome)
 
 
 #### 3C: Inference time vs mean Over vs Under expression promoter variant auROC
 
-Data already calculated in previus figures. Inference timing from 3A,B. Promoter variant auROC (from unquantized models) from 2B-D.
+Data already calculated in previus figures. Inference timing from 3A,B. Promoter variant auROC (from unquantized models) from 2B-E.
 
 
-#### 3D: Correlation between Sei-LLRA quantized and unquantized asay predictions for cCREs
+#### 3D: Correlation between Sei-LLRA quantized and unquantized assay predictions for cCREs
 
 Scripts:
 - `examples/lora_compare_full_cCREs_quant.py` — calculate correlation between Sei-LLRA quantized and unquantized predictions 

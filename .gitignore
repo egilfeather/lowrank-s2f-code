@@ -2,6 +2,10 @@
 __pycache__/
 
 data/
+examples/*.csv
+examples/*.tsv
+examples/*.pkl
+examples/*.txt
 
 # Model weights / large files
 examples/borzoi_lora_weights/
