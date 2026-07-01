@@ -22,7 +22,9 @@ wget https://sei-files.s3.amazonaws.com/resources.tar.gz
 tar -xzvf resources.tar.gz
 
 wget -P ../resources \
-https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_49/gencode.v49.basic.annotation.gtf.gz
+https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_49/gencode.v49.basic.annotation.gtf.gz \
+https://raw.githubusercontent.com/FunctionLab/sei-framework/main/model/seqclass.names \
+https://raw.githubusercontent.com/FunctionLab/sei-framework/main/model/target.names
 
 
 
