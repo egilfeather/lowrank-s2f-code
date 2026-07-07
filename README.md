@@ -67,23 +67,28 @@ Quantization of AlphaGenome: `examples/ag_static_qunat.py`
 
 - `examples/figure1.ipynb` - Plots
 
-#### 1A,B: Model rank x parameters
+#### 1A: Model rank x parameters
 
 Scripts:
 - `examples/grelu_quantize.py` - calculates Enformer-LLRA and Borzoi-LLRA model sizes
 - `examples/count_ag.py` - calculates AlphaGenome-LLRA model sizes
 - `examples/figure1.ipynb` - calculates Sei-LLRA model sizes
 
-#### 1C-F: Model rank x MACs
+#### 1B: Model rank x MACs
 
 Scripts:
 - `examples/calculate_macs.py` — calculate MACs for each model
 
-#### 1G: Low rank model correlation with full model
+#### 1C: Low rank model correlation with full model
 
 Scripts:
 - `examples/lora_compare_full_cCREs.py` - calculates correlation between full and low rank models (Sei, Enformer, Borzoi)
 - `examples/lora_compare_full_cCREs_ag.py` - calculates correlation between full and low rank models (AlphaGenome)
+
+#### 1D,E: Low rank model correlation with full model by output modality
+
+Scripts:
+- `examples/lora_compare_full_cCREs_bytrack.py` - calculates correlation between full and low rank models (Sei, Enformer, Borzoi, AlphaGenome)
 
 ---
 
@@ -103,7 +108,7 @@ Scripts:
 Data:
 - `examples/benchmark_pai_sota.tsv` - tsv file with predictions for ChromBPNet and PromoterAI
 
-#### 2B-G: Low-rank model auROCs
+#### 2B-E: Low-rank model auROCs
 
 Scripts:
 - `examples/get_benchmarking_metrics_seilora.py` — prediction for the low-rank Sei model
@@ -179,14 +184,12 @@ Data:
 
 - Alphagenome and Borzoi scores from [Avsec et al., 2025](https://doi.org/10.1101/2025.06.25.661532)
 
-#### 4C: Change in Pearson corerlation between full and low-rank Sei
 
-- Uses the same predictions as 4A,B
-
-#### 4D,E: Change in Pearson corerlation between full and low-rank Sei
+#### 4C: Pearson corerlation compared to model size and speed
 
 - Uses the same predictions as 4A,B
 - Uses CPU inference time from 3A,B
+- Uses Parameter counts from 1A
 
 ---
 
